@@ -1,6 +1,7 @@
 name: Sync with develop
 
 on:
+  # Run manually from the Actions tab
   workflow_dispatch:
     inputs:
       source_branch:
@@ -13,7 +14,8 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: write     # allow this workflow to push commits to repo2
+  pull-requests: write
 
 concurrency:
   group: sync-software
@@ -22,6 +24,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repo2 (this repo)
         uses: actions/checkout@v4
@@ -34,30 +37,41 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Clone repo1 (NanoTabletRFIDv2)
+      - name: Verify secret exists
+        env:
+          REPO1_TOKEN: ${{ secrets.REPO1_TOKEN }}
         run: |
-          set -e
-          SRC_BRANCH="${{ github.event.inputs.source_branch }}"
-          if [ -n "${{ secrets.REPO1_TOKEN }}" ]; then
-            git clone --depth 1 --branch "$SRC_BRANCH" \
-              "https://x-access-token:${{ secrets.REPO1_TOKEN }}@github.com/TomasSpusta/NanoTabletRFIDv2.git" repo1
-          else
-            git clone --depth 1 --branch "$SRC_BRANCH" \
-              "https://github.com/TomasSpusta/NanoTabletRFIDv2.git" repo1
+          set -euo pipefail
+          if [ -z "${REPO1_TOKEN:-}" ]; then
+            echo "ERROR: Missing REPO1_TOKEN secret in this repository."
+            echo "Create a PAT with read access to TomasSpusta/NanoTabletRFIDv2 and add it as 'REPO1_TOKEN'."
+            exit 1
           fi
 
-      - name: Copy files into SOFTWARE/ (mirror, keep this repo’s CI)
+      - name: Clone repo1 (NanoTabletRFIDv2) with token
+        env:
+          REPO1_TOKEN: ${{ secrets.REPO1_TOKEN }}
         run: |
-          set -e
+          set -euo pipefail
+          SRC_BRANCH="${{ github.event.inputs.source_branch }}"
+          git clone --depth 1 --branch "$SRC_BRANCH" \
+            "https://x-access-token:${REPO1_TOKEN}@github.com/TomasSpusta/NanoTabletRFIDv2.git" repo1
+          echo "Cloned NanoTabletRFIDv2@$SRC_BRANCH"
+          ls -la repo1 | head -n 100
+
+      - name: Mirror contents into SOFTWARE/ (preserve this repo’s CI)
+        run: |
+          set -euo pipefail
           mkdir -p SOFTWARE
           rsync -a --delete \
             --exclude ".git" \
             --exclude ".github" \
             repo1/ SOFTWARE/
+          echo "Sync complete to SOFTWARE/"
 
       - name: Commit and push if changed
         run: |
-          set -e
+          set -euo pipefail
           DEST_BRANCH="${{ github.event.inputs.dest_branch }}"
           git add SOFTWARE
           if git diff --cached --quiet; then
@@ -66,3 +80,4 @@ jobs:
           fi
           git commit -m "Sync SOFTWARE from NanoTabletRFIDv2:${{ github.event.inputs.source_branch }}"
           git push origin "HEAD:$DEST_BRANCH"
+          echo "Changes pushed to $DEST_BRANCH"
