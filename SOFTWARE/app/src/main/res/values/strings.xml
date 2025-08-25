@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">NanoTablet RFID</string>
+    <string name="title_activity_scan_card">ScanCard</string>
+    <string name="title_activity_test">TestActivity</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="profile_name">Profile Name</string>
+</resources>
