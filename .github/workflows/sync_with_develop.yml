@@ -1,1 +1,68 @@
+name: Sync with develop
 
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: "Branch in repo1 (NanoTabletRFIDv2) to sync"
+        default: "master"
+        required: true
+      dest_branch:
+        description: "Branch in this repo (CFNano_Tablet) to update"
+        default: "main"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-software
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo2 (this repo)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.dest_branch }}
+
+      - name: Configure Git author
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Clone repo1 (NanoTabletRFIDv2)
+        run: |
+          set -e
+          SRC_BRANCH="${{ github.event.inputs.source_branch }}"
+          if [ -n "${{ secrets.REPO1_TOKEN }}" ]; then
+            git clone --depth 1 --branch "$SRC_BRANCH" \
+              "https://x-access-token:${{ secrets.REPO1_TOKEN }}@github.com/TomasSpusta/NanoTabletRFIDv2.git" repo1
+          else
+            git clone --depth 1 --branch "$SRC_BRANCH" \
+              "https://github.com/TomasSpusta/NanoTabletRFIDv2.git" repo1
+          fi
+
+      - name: Copy files into SOFTWARE/ (mirror, keep this repo’s CI)
+        run: |
+          set -e
+          mkdir -p SOFTWARE
+          rsync -a --delete \
+            --exclude ".git" \
+            --exclude ".github" \
+            repo1/ SOFTWARE/
+
+      - name: Commit and push if changed
+        run: |
+          set -e
+          DEST_BRANCH="${{ github.event.inputs.dest_branch }}"
+          git add SOFTWARE
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Sync SOFTWARE from NanoTabletRFIDv2:${{ github.event.inputs.source_branch }}"
+          git push origin "HEAD:$DEST_BRANCH"
