@@ -2,7 +2,7 @@
 
 Ceitec Nano Core Facility Tablet (Need better name)  
 
-A tablet represents another extension (link to the blueboxes GitHub) to the booking system (web address) at Ceitec Nano research facility. The main purpose of this extension is to provide the possibility to create a reservation on the spot, in the lab, only with a user/employee card for “small” instruments and/or the instruments which are used only for a short amount of time. Typical use cases are to use an optical microscope during metallography preparation or to use a fume hood for cleaning samples.  
+A tablet represents another extension ([BlueBoxes](https://github.com/TomasSpusta/CFNano_BlueBox)) to the booking system (booking.ceitec.cz) at Ceitec Nano research facility. The main purpose of this extension is to provide the possibility to create a reservation on the spot, in the lab, only with a user/employee card for “small” instruments and/or the instruments which are used only for a short amount of time. Typical use cases are to use an optical microscope during metallography preparation or to use a fume hood for cleaning samples.  
 
 The device is composed of a shelf tablet with USB-C port and additional charging contact on the side (pogo pins pads). The USB-C port is occupied with an RFID module, and the custom charging stand secures the power.
 Tablet and RFID reader are encapsulated with the EVA foam protective holder (off-the-shelf product with some modification- link to wiki).  
